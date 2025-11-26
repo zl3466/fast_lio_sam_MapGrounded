@@ -1,0 +1,146 @@
+common:
+    lid_topic:  /lidar/points    #"/velodyne_points"
+    imu_topic:  /imu/data         #"/imu/data"
+    gnss_topic: /gps/fix          # GNSS/GPS topic (sensor_msgs/NavSatFix)
+    time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
+#NCLT
+#    lid_topic: "/points_raw"
+#    imu_topic: "/imu_raw"
+
+#KITTI
+#    lid_topic: "/kitti/velo/pointcloud"
+#    imu_topic: "/kitti/oxts/imu"
+
+#RS LiDar
+#    lid_topic: "/rslidar"
+#    imu_topic: "/imu"
+
+    
+preprocess:
+    lidar_type: 2                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
+    scan_line: 128
+    scan_rate: 10                # only need to be set for velodyne, unit: Hz,
+    timestamp_unit: 2            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
+    blind: 1
+
+mapping:
+    acc_cov: 3.9939570888238808e-03
+    gyr_cov: 1.5636343949698187e-03
+    b_acc_cov: 6.4356659353532566e-05
+    b_gyr_cov: 3.5640318696367613e-05
+    fov_degree:    180
+    det_range:     100.0
+    extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
+    # mike
+    extrinsic_T: [ -0.628940, 0.000000, -1.072380 ]
+    extrinsic_R: [0.999862, -0.002617, -0.016392,
+                  0.002024, 0.999348, 0.036049,
+                  -0.016475, 0.036011, 0.999216]
+
+
+
+    # GNSS-LiDAR extrinsics (translation and rotation from GNSS to LiDAR frame)
+    extrinT_Gnss2Lidar: [ -0.628940, 0.000000, -1.072380 ]  # Translation: [x, y, z] in meters
+    extrinR_Gnss2Lidar: [0.999862, -0.002617, -0.016392,
+                  0.002024, -0.999348, 0.036049,
+                  -0.016475, 0.036011, -0.999216] 
+publish:
+    path_en:  true
+    scan_publish_en:  true       # false: close all the point cloud output
+    dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
+    scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
+
+pcd_save:
+    pcd_save_en: true
+    interval: -1                 # how many LiDAR frames saved in each pcd file; 
+                                 # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.
+
+# voxel filter paprams
+odometrySurfLeafSize: 0.4                     # default: 0.4 - outdoor, 0.2 - indoor
+mappingCornerLeafSize: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
+mappingSurfLeafSize: 0.4                      # default: 0.4 - outdoor, 0.2 - indoor
+
+# robot motion constraint (in case you are using a 2D robot)
+z_tollerance: 1000                            # meters
+rotation_tollerance: 1000                     # radians
+
+# CPU Params
+numberOfCores: 4                              # number of cores for mapping optimization
+mappingProcessInterval: 0.15                  # seconds, regulate mapping frequency
+
+# Surrounding map
+surroundingkeyframeAddingDistThreshold: 10  #1.0   # meters, regulate keyframe adding threshold
+surroundingkeyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
+surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses   
+surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
+
+# Loop closure
+loopClosureEnableFlag: true
+loopClosureFrequency: 1.0                     # Hz, regulate loop closure constraint add frequency
+surroundingKeyframeSize: 50                   # submap size (when loop closure enabled)
+historyKeyframeSearchRadius: 15 #1.5             # meters, key frame that is within n meters from current pose will be considerd for loop closure
+historyKeyframeSearchTimeDiff: 30.0           # seconds, key frame that is n seconds older will be considered for loop closure
+historyKeyframeSearchNum: 20                  # number of hostory key frames will be fused into a submap for loop closure
+historyKeyframeFitnessScore: 0.5              # icp threshold, the smaller the better alignment
+loopClosure:
+    noise_scale: 0.0001                          # Scaling factor for loop closure noise (lower = stronger constraint/higher weight)
+                                              # To give loop closure more weight than XY factor, set this lower than XY factor noise values
+                                              # Example: if XY factor noise_x=1e-3, set noise_scale < 0.001 to make loop closure stronger
+
+# Visualization
+globalMapVisualizationSearchRadius: 1000.0    # meters, global map visualization radius
+globalMapVisualizationPoseDensity: 10      # meters, global map visualization keyframe density
+globalMapVisualizationLeafSize: 1.0           # meters, global map visualization cloud density
+
+# visual iktree_map  
+visulize_IkdtreeMap: true
+
+# visual iktree_map  
+recontructKdTree: true
+
+# Export settings
+savePCD: false                         # https://github.com/TixiaoShan/LIO-SAM/issues/3
+savePCDDirectory: "/fast_lio_sam_ws/src/FAST_LIO_SAM/PCD/"        # in your home folder, starts and ends with "/". Warning: the code deletes "LOAM" folder then recreates it. See "mapOptimization" for implementation
+
+# IMU initialization settings
+imuInit:
+    max_ini_count: 10                   # Maximum number of IMU iterations for initialization (fewer = faster init, but less accurate)
+    init_time: 0.1                      # Time threshold in seconds for EKF initialization check
+
+# GNSS/GPS settings
+useImuHeadingInitialization: false     # Use IMU heading for initialization
+useGnssOptimization: false             # Enable/disable GNSS optimization (GPS factors in ISAM2)
+useGpsElevation: false                 # Use GPS elevation for optimization (only used if useGnssOptimization is true)
+useXYFactor: true                     # Enable/disable XY factor (constrains all 6DOF to reference odometry)
+debug_copy_ref_to_pred: false         # DEBUG: Copy reference odometry to predicted odometry (for sync testing)
+gpsCovThreshold: 2.0                   # GPS covariance threshold (meters^2)
+poseCovThreshold: 25.0                 # Pose covariance threshold from ISAM2
+
+# XY Factor noise model (variance for each DOF)
+# Lower values = stronger constraint, higher values = weaker constraint
+# Order: roll, pitch, yaw (rad^2), x, y, z (m^2)
+xyFactor:
+    noise_roll: 0.001                  # Roll angle variance (rad^2)
+    noise_pitch: 0.0001                 # Pitch angle variance (rad^2)
+    noise_yaw: 0.0001                   # Yaw angle variance (rad^2)
+    noise_x: 0.1                     # X position variance (m^2)
+    noise_y: 0.1                     # Y position variance (m^2)
+    noise_z: 1                      # Z position variance (m^2) - larger value allows more Z variation
+
+# x/y position constraints (constrain x/y from reference odometry, predict z from LiDAR)
+# The first reference odometry message will be used to align FAST-LIO's camera_init frame
+# with the world frame. This eliminates the need for manual frame transforms.
+reference_pose:
+    use_reference_pose: true          # Enable using reference pose for initial guess
+    reference_topic: "/pose"          # ROS topic name for reference odometry (nav_msgs::Odometry)
+reference_init:
+    enable: true
+    topic: "/pose"  # Replace with your reference odometry topic
+    
+    # Note: For each frame's initial guess:
+    # - x, y, roll, pitch, yaw come from reference pose
+    # - z is computed from IMU propagation
+    # The first reference odometry message aligns camera_init frame with world frame:
+    # - camera_init origin = first reference position
+    # - camera_init orientation = first reference orientation (inverted)
+
