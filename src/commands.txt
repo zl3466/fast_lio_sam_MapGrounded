@@ -1,0 +1,246 @@
+docker exec -it ros_noetic_ws_v2 bash
+
+# cleanup coredump from docker:
+sudo rm -rf /var/lib/apport/coredump/*
+
+# activate local ros1 system
+source /opt/ros/noetic/setup.bash
+
+catkin_make -DPYTHON_EXECUTABLE=/usr/bin/python3
+source devel/setup.bash
+
+
+# ============================= Convert NUSC to velodyne rosbag ============================= 
+# ------- scene 1 full -----------
+python py_script/nusc2rosbag_velodyne.py \
+    --nusc_dir "/media/zl3466/新加卷1/MARS_10Hz_long" \
+    --nusc_ver "v1.1_z" \
+    --scene_idx 1 \
+    --output_bag "/media/zl3466/新加卷1/MARS_10Hz_long/scene_1.bag"
+
+# ------- scene 2 mini -----------
+python ./py_script/nusc2rosbag_velodyne.py \
+    --nusc_dir "/media/zl3466/新加卷1/MARS_10Hz_long" \
+    --nusc_ver "v1.1_z" \
+    --scene_idx 2 \
+    --start_tp 1719854154976149 \
+    --end_tp 1719854184976149 \
+    --output_bag "/media/zl3466/新加卷1/MARS_10Hz_long/scene_2_mini_velo.bag"
+
+# ------- scene 2 short -----------
+python ./py_script/nusc2rosbag_velodyne.py \
+    --nusc_dir "/media/zl3466/新加卷1/MARS_10Hz_long" \
+    --nusc_ver "v1.1_z" \
+    --scene_idx 2 \
+    --start_tp 1719854154976149 \
+    --end_tp 1719855595011022 \
+    --output_bag "/media/zl3466/新加卷1/MARS_10Hz_long/scene_2_short.bag"
+
+# ------- scene 2 medium -----------
+python ./py_script/nusc2rosbag_velodyne.py \
+    --nusc_dir "/media/zl3466/新加卷1/MARS_10Hz_long" \
+    --nusc_ver "v1.1_z" \
+    --scene_idx 2 \
+    --end_tp 1719860506117130 \
+    --output_bag "/media/zl3466/新加卷1/MARS_10Hz_long/scene_2_medium.bag"
+
+
+# ------- scene 2 full -----------
+python ./py_script/nusc2rosbag_velodyne.py \
+    --nusc_dir "/media/zl3466/新加卷1/MARS_10Hz_long" \
+    --nusc_ver "v1.1_z" \
+    --scene_idx 2 \
+    --output_bag "/media/zl3466/新加卷1/MARS_10Hz_long/scene_2.bag"
+
+
+# ------- scene 4 full -----------
+python ./py_script/nusc2rosbag_velodyne.py \
+    --nusc_dir "/media/zl3466/新加卷1/MARS_10Hz_long" \
+    --nusc_ver "v1.1_z" \
+    --scene_idx 4 \
+    --output_bag "/media/zl3466/新加卷1/MARS_10Hz_long/scene_4.bag"
+
+
+# ============================= Run FAST_LIO_SAM velodyne ============================= 
+# ----------------- scene 2 ----------------- 
+roslaunch fast_lio mapping_velodyne128.launch \
+    pos_log_file:="./scene_2_short/odometry_log.txt" \
+    mat_out_file:="./scene_2_short/state_log.txt" \
+    time_log_file:="./scene_2_short/timing_log.csv"
+
+rosbag play scene_2_short.bag
+
+
+# ============================= Scene 1 ============================= 
+# create output directories
+mkdir -p /Documents/ros1/fast_lio_sam/output/scene_1
+
+# Terminal 1
+roslaunch fast_lio_sam mapping_velodyne128_mars.launch log_subfolder:="scene_1"
+
+# Terminal 2
+rosservice call /load_map "source: '/Documents/ros1/fast_lio_sam/output/scene_1'"
+
+# Terminal 3
+rosbag play scene_1.bag
+
+######  after finish ###### 
+# save optimized pose
+rosservice call /save_pose "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_1'"
+
+# save map
+rosservice call /save_map "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_1'"
+
+
+# ============================= Scene 2 ============================= 
+# create output directories
+mkdir -p /Documents/ros1/fast_lio_sam/output/scene_2
+
+# Terminal 1
+roslaunch fast_lio_sam mapping_velodyne128_mars.launch log_subfolder:="scene_2"
+
+# Terminal 2
+rosservice call /load_map "source: '/Documents/ros1/fast_lio_sam/output/scene_2_short'"
+
+# Terminal 3
+rosbag play scene_2.bag
+
+######  after finish ###### 
+# save optimized pose
+rosservice call /save_pose "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_2'"
+
+# save map
+rosservice call /save_map "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_2'"
+
+
+
+# ============================= Scene 2 short ============================= 
+# create output directories
+mkdir -p /Documents/ros1/fast_lio_sam/output/scene_2_short
+
+# Terminal 1
+roslaunch fast_lio_sam mapping_velodyne128_mars.launch log_subfolder:="scene_2_short"
+
+# Terminal 2
+rosservice call /load_map "source: '/Documents/ros1/fast_lio_sam/output/scene_2_short'"
+
+# Terminal 3
+rosbag play scene_2_short_velo_gps.bag
+
+######  after finish ###### 
+# save optimized pose
+rosservice call /save_pose "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_2_short'"
+
+# save map
+rosservice call /save_map "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_2_short'"
+
+
+
+# ============================= Scene 2 medium ============================= 
+# create output directories
+mkdir -p /Documents/ros1/fast_lio_sam/output/scene_2_medium
+
+# Terminal 1
+roslaunch fast_lio_sam mapping_velodyne128_mars.launch log_subfolder:="scene_2_medium"
+
+# Terminal 2
+rosservice call /load_map "source: '/Documents/ros1/fast_lio_sam/output/scene_1_over_scene_2_short'"
+
+# Terminal 3
+rosbag play scene_2_medium.bag
+
+######  after finish ###### 
+# save optimized pose
+rosservice call /save_pose "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_2_medium'"
+
+# save map
+rosservice call /save_map "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_2_medium'"
+
+
+
+
+
+
+
+
+
+
+
+
+# ============================= Scene 1 ============================= 
+# Terminal 1
+roslaunch fast_lio_sam mapping_velodyne128_mars.launch log_subfolder:="scene_2_short_loop_gps"
+roslaunch fast_lio_sam mapping_velodyne128_mars.launch log_subfolder:="scene_2_short_loop_xy"
+roslaunch fast_lio_sam mapping_velodyne128_mars.launch log_subfolder:="scene_2_short_loop_xy_noz"
+roslaunch fast_lio_sam mapping_velodyne128_mars.launch log_subfolder:="scene_2_short_loop_hard_noz"
+roslaunch fast_lio_sam mapping_velodyne128_mars.launch log_subfolder:="scene_1"
+
+# load map
+rosservice call /load_map "source: '/Documents/ros1/fast_lio_sam/output/scene_1'"
+
+# Terminal 2
+rosbag play scene_1.bag
+rosbag play scene_2_short.bag
+rosbag play scene_2_short_velo_gps.bag
+
+# Terminal 3 save optimized pose (run AFTER roslaunch finishes and all optimizations complete)
+# First create the directory (the service doesn't create directories automatically)
+mkdir -p /Documents/ros1/fast_lio_sam/output/scene_2_short
+
+# save optimized pose
+rosservice call /save_pose "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_1'"
+
+# save map
+rosservice call /save_map "resolution: 0.0
+destination: '/Documents/ros1/fast_lio_sam/output/scene_1'"
+
+
+
+
+
+# visualize
+
+
+python py_script/viz_pose_txt.py
+
+python3 py_script/interpolate_optimized_poses.py \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/scene_1/optimized_pose.txt \
+    /home/zl3466/Documents/ros1/fast_lio_sam/src/FAST_LIO_SAM/FAST_LIO_SAM/Log/scene_1/pos_log.txt \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/scene_1_new/
+
+
+python3 py_script/interpolate_optimized_poses.py \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/scene_2_short/optimized_pose.txt \
+    /home/zl3466/Documents/ros1/fast_lio_sam/src/FAST_LIO_SAM/FAST_LIO_SAM/Log/scene_2_short/pos_log.txt \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/scene_2_short/
+
+
+python3 py_script/interpolate_optimized_poses.py \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/scene_2_medium_4800/optimized_pose.txt \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/scene_2_medium_4800/pos_log.txt \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/scene_2_medium_4800/
+
+
+python3 py_script/viz_pose_txt_multi.py \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/scene_1/optimized_pose.txt \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/scene_2_short/optimized_pose.txt \
+    /home/zl3466/Documents/ros1/fast_lio_sam/output/comparison.html \
+    "scene1" \
+    "scene2_short"
+
+
+
+tar -czvf /media/zl3466/Elements/07_01_camera.tar.gz /media/zl3466/新加卷1/may/data/2024_07_01/camera
+tar -czvf /media/zl3466/Elements/07_01_lidar.tar.gz /media/zl3466/新加卷1/may/data/2024_07_01/lidar
+
+tar -czvf /media/zl3466/Elements/07_02_camera.tar.gz /media/zl3466/新加卷1/may/data/2024_07_02/camera
+tar -czvf /media/zl3466/Elements/07_02_lidar.tar.gz /media/zl3466/新加卷1/may/data/2024_07_02/lidar
